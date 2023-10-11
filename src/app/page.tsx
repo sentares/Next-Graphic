@@ -1,9 +1,13 @@
+import { DropDown } from '@/components/DropDown'
 import { Graphic } from '@/components/Graphic'
 
 export default function Home() {
 	return (
-		<main className='flex min-h-screen flex-col items-center justify-between p-24'>
-			<Graphic />
+		<main>
+			<div className='flex flex-col	gap-8 items-center p-5'>
+				<DropDown />
+				<Graphic />
+			</div>
 		</main>
 	)
 }

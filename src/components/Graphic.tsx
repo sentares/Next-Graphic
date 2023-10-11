@@ -1,105 +1,100 @@
 'use client'
 
-import React, { useState } from 'react'
-import {
-	Bar,
-	BarChart,
-	ResponsiveContainer,
-	XAxis,
-	YAxis,
-	Cell,
-	LabelList,
-} from 'recharts'
+import React, { useEffect, useState } from 'react'
+import { useSpring, animated } from 'react-spring'
 
-interface DataItem {
+interface IBar {
 	name: string
 	total: number
+	normalizedTotal?: number
 }
 
-interface CustomLabelProps {
-	x?: number
-	y?: number
-	width?: number
-	value: number
-}
-
-const data: DataItem[] = [
-	{ name: 'Янв', total: 560 },
+const data: IBar[] = [
+	{ name: 'Янв', total: 400 },
 	{ name: 'Фев', total: 590 },
-	{ name: 'Март', total: 1200 },
-	{ name: 'Апр', total: 1800 },
-	{ name: 'Май', total: 2500 },
+	{ name: 'Март', total: 800 },
+	{ name: 'Апр', total: 800 },
+	{ name: 'Май', total: 600 },
 ]
 
 export const Graphic: React.FC = () => {
-	const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null)
-	const [activeValue, setActiveValue] = useState<number | null>(300)
+	const [isHoverBar, setIsHoverBar] = useState<number | null>(null)
+	const [loaded, setLoaded] = useState(false)
 
-	const renderCustomLabel = (props: CustomLabelProps) => {
-		const { x, y, value } = props
+	const maxValue = Math.max(...data.map(entry => entry.total))
+	const containerHeight = 240
+	const step = Math.ceil(maxValue / 4)
 
-		if (
-			x !== undefined &&
-			y !== undefined &&
-			activeBarIndex !== null &&
-			value === activeValue
-		) {
-			return (
-				<foreignObject x={x - 20} y={y - 28} width='55px' height='30px'>
-					<div className='bg-[#65FF8E] flex items-center justify-center text-black rounded-md z-30 px-2 min-w-[40px] min-h-[20px]'>
-						{value}
-					</div>
-				</foreignObject>
-			)
-		}
-		return null
+	const findYAxisValues = () => {
+		const yAxisValues = Array.from({ length: 6 }, (_, i) => step * i)
+		return yAxisValues.reverse()
 	}
 
+	const yAxisValues = findYAxisValues()
+
+	useEffect(() => {
+		setLoaded(true)
+	}, [])
+
+	const normalizedData = data.map(entry => ({
+		...entry,
+		normalizedTotal: (entry.total / (maxValue + step)) * containerHeight,
+	}))
+
+	const barAnimations = normalizedData.map(entry => {
+		const barHeight = entry.normalizedTotal + 24
+
+		const props = useSpring({
+			from: { height: 0 },
+			to: { height: loaded ? barHeight : 0 },
+			reset: false,
+		})
+		return props
+	})
+
 	return (
-		<ResponsiveContainer width='20%' height={350}>
-			<BarChart data={data}>
-				<XAxis
-					dataKey='name'
-					stroke='#888888'
-					fontSize={12}
-					tickLine={false}
-					axisLine={false}
-					textAnchor='middle'
-				/>
-				<YAxis
-					stroke='#888888'
-					fontSize={12}
-					tickLine={false}
-					axisLine={false}
-					tickFormatter={(value: number) => `${value}`}
-				/>
-				<Bar dataKey='total' radius={[4, 4, 0, 0]} width={16}>
-					<LabelList
-						width={16}
-						dataKey='total'
-						//@ts-expect-error
-						content={renderCustomLabel}
-					/>
+		<div className='max-w-[995px] w-full py-10 rounded-3xl bg-red-300 flex'>
+			<div
+				className='flex flex-col pl-10 items-start justify-between mb-[24px]'
+				style={{ height: containerHeight }}
+			>
+				{yAxisValues.map((value, index) => (
+					<div key={index} className='text-right'>
+						{value}
+					</div>
+				))}
+			</div>
+			<div className='w-full flex flex-col items-center justify-end'>
+				<div className='flex justify-between w-full px-8 items-end h-full'>
 					{data.map((entry, index) => (
-						<Cell
-							width={16}
+						<animated.div
 							key={index}
-							fill={'#000AFF'}
-							className={`transition duration-300 ease-in-out transform hover:shadow-lg ${
-								activeBarIndex === index ? 'active' : ''
-							}`}
-							onMouseEnter={() => {
-								setActiveBarIndex(index)
-								setActiveValue(entry.total)
+							className='flex flex-col items-center justify-end gap-2 h-full'
+							onMouseEnter={() => setIsHoverBar(index)}
+							onMouseLeave={() => setIsHoverBar(null)}
+							style={{
+								...barAnimations[index],
 							}}
-							onMouseLeave={() => {
-								setActiveBarIndex(null)
-								setActiveValue(null)
-							}}
-						/>
+						>
+							<div
+								className={`w-4 relative flex justify-center cursor-pointer transition-transform duration-500 ease-in-out transform ${
+									isHoverBar === index ? 'hover:scale-x-105' : ''
+								} animate-rise bg-[#000AFF] h-full rounded-md ${
+									isHoverBar === index ? 'shadow-lg' : ''
+								}`}
+								style={{ height: `${entry.normalizedTotal}px` }}
+							>
+								{isHoverBar === index && (
+									<div className='bg-[#65FF8E] py-[2px] px-2 z-20 absolute top-[-32px] rounded-md'>
+										{entry.total}
+									</div>
+								)}
+							</div>
+							<div className='w-16 text-center'>{entry.name}</div>
+						</animated.div>
 					))}
-				</Bar>
-			</BarChart>
-		</ResponsiveContainer>
+				</div>
+			</div>
+		</div>
 	)
 }
